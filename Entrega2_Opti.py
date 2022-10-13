@@ -28,9 +28,17 @@ c=MenuCom[:,2]
 d=MenuCom[:,-1]
 n=Requisitos[:,1]
 v=MenuCom[:,5]
+r= 3.75 # pesos por hora, 0.25 Pesos por 1 refrigerador por hora->1400L  ,0,1 KWh, por precio de eso, 2,5 pesos por kwh, 15 refrigeradores
+l= 50 #pesos por hora
+cg=7198  #pesos por hora, sueldo subteniente
+vr = 
+vd =
+nij = 
+nm = 500
+nar= 250
+nbr = 1750
 
 # Definir valores para los parámetros 
-
 
 
 
