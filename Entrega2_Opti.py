@@ -9,6 +9,9 @@ import pandas as pd
 ruta=r''
 MenuCom = pd.read_excel(io=ruta, sheet_name='Hoja1',header=0,names=None,index_col=None,usecols='A:O',engine='openpyxl')
 MenuCom = Estructura.to_numpy()
+Requisitos = pd.read_excel(io=ruta, sheet_name='Hoja2',header=0,names=None,index_col=None,usecols='A:B',engine='openpyxl')
+Requisitos = Requisitos.to_numpy()
+
 
 ###Falta separar en conjuntos de Alimentos, nutrientes por comida,etc.
 
@@ -16,8 +19,15 @@ MenuCom = Estructura.to_numpy()
 Comidas=np.array[1,2,3]
 Dias=np.array[1,2,3,4,5,6,7]
 Horarios=np.array[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]
-#Alimentos -> por hacer
-#Nutrientes -> por hacer
+Alimentos= MenuCom[:,0]
+Nutrientes= np.array[kcal,grasas,carbohidratos,proteínas]
+
+# Definir valores para los parámetros 
+
+c=MenuCom[:,2]
+d=MenuCom[:,-1]
+n=Requisitos[:,1]
+v=MenuCom[:,5]
 
 # Definir valores para los parámetros 
 
