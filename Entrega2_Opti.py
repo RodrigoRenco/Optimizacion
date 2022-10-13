@@ -64,7 +64,7 @@ model.addConstrs((quicksum(ZA[h,3,t]+ZB[h,3,t]for h in range (1,12))== 0 for t i
 #R4
 model.addConstrs((ZA[h,m,t]+ZB[h,m,t] for h in Horarios for m in Comidas for t in Dias),name="R4")
 
-#R5 CORREGIR!!!
+#R5
 model.addConstrs((ZA[h,m,t]<= (2 + 3*Y[h,t]) for h in Horarios for m in Comidas for t in Dias),name="R5")
 
 #R6
