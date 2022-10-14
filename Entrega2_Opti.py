@@ -42,7 +42,7 @@ nbr = 1750
 #Crear modelo vacío
 
 model=Model()
-model.setParam("TimeLimit", 60)
+model.setParam("TimeLimit", 10)
 
 #Crea las variables de decisión
 
@@ -121,7 +121,44 @@ model.optimize()
 print("\n"+"-"*10+" Manejo Soluciones "+"-"*10)
 print(f"El valor objetivo es de: {model.ObjVal}")
 
-#for comi
+
+print(f'El casino fue usado {(X.x)/7} veces durante la semana')
+
+for alimento in Alimentos:
+    if Q[alimento].x != 0:
+        print(f'Se compra {Q[alimento].x} unidades del alimento {alimento+1}')
+
+for dia in Dias:
+    for horario in Horarios:
+        if X1[horario,dia].x != 0:
+            print(f'Se ocupa el casino en el horario {horario+1} del día {dia+1}')
+
+for dia in Dias:
+    for horario in Horarios:
+        if Y[horario,dia].x != 0:
+            print(f'Se asignó {Y[horario,dia].x} gendarmes adicionales al casino en el horario {horario+1} del día {dia+1}')
+
+for dia in Dias:
+    for horario in Horarios:
+        if E[horario,dia].x != 0:
+            print(f'Los refrigeradores se encuentran encendidos en el horario {horario+1} del día {dia+1}')
+
+for comida in Comidas:
+    for dia in Dias:
+        for alimento in Alimentos:
+            if U[alimento,comida,dia].x != 0:
+                print(f'Hay {U[alimento,comida,dia].x} cc del alimento {alimento+1} en la comida {comida+1} del día {dia+1}')
+            if G[alimento,comida,dia].x != 0:
+                print(f'Se sirve el alimento {alimento+1} en la comida {comida+1} del día {dia+1}')
+
+for comida in Comidas:
+    for dia in Dias:
+        for horario in Horarios:
+            if ZA[horario,comida,dia].x != 0:
+                print(f'Hay {ZA[horario,comida,dia].x} reos de alto riesgo en la comida {comida+1} en el horario {horario+1} del día {dia+1}')
+            if ZB[horario,comida,dia].x != 0:
+                print(f'Hay {ZB[horario,comida,dia].x} reos de bajo riesgo en la comida {comida+1} en el horario {horario+1} del día {dia+1}')
+
 
 #for sitio in Sitios: 
     #if x[sitio].x != 0:
