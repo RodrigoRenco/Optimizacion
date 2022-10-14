@@ -6,9 +6,9 @@ import pandas as pd
 # Definicion de data/parámetros: Definir Localidades y Sitios
 #Ruta excel!!
 
-ruta=r''
-MenuCom = pd.read_excel(io=ruta, sheet_name='Hoja1',header=0,names=None,index_col=None,usecols='A:O',engine='openpyxl')
-MenuCom = Estructura.to_numpy()
+ruta=r'/Users/diegomorales/Desktop/Universidad/Directorio VSCode/Excel datos E2 proyecto.xlsx'
+MenuCom = pd.read_excel(io=ruta, sheet_name='Hoja1',header=0,names=None,index_col=None,usecols='A:K',engine='openpyxl')
+MenuCom = MenuCom.to_numpy()
 Requisitos = pd.read_excel(io=ruta, sheet_name='Hoja2',header=0,names=None,index_col=None,usecols='A:B',engine='openpyxl')
 Requisitos = Requisitos.to_numpy()
 
@@ -16,45 +16,43 @@ Requisitos = Requisitos.to_numpy()
 ###Falta separar en conjuntos de Alimentos, nutrientes por comida,etc.
 
 #Conjuntos
-Comidas=np.array[1,2,3]
-Dias=np.array[1,2,3,4,5,6,7]
-Horarios=np.array[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]
-Alimentos= MenuCom[:,0]
-Nutrientes= np.array[kcal,grasas,carbohidratos,proteínas]
+Comidas=np.array([0,1,2])
+Dias=np.array([0,1,2,3,4,5,6])
+Horarios=np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16])
+Alimentos= np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]) #MenuCom[:,0]
+Nutrientes= np.array([0,1,2,3]) #np.array[kcal,grasas,carbohidratos,proteínas] kcal=1,grasas=2,carbohidratos=3,proteínas=4
 
 # Definir valores para los parámetros 
 
 c=MenuCom[:,2]
 d=MenuCom[:,-1]
-n=Requisitos[:,1]
+ne=Requisitos[:,1]
 v=MenuCom[:,5]
 r= 3.75 # pesos por hora, 0.25 Pesos por 1 refrigerador por hora->1400L  ,0,1 KWh, por precio de eso, 2,5 pesos por kwh, 15 refrigeradores
 l= 50 #pesos por hora
 cg=7198  #pesos por hora, sueldo subteniente
-vr = 
-vd =
-nij = 
+vr = 21000000 # 15 refrigeradores por 1400 litros por 1000 cc por litro
+vd = 21000000
+n = MenuCom[:,-5:-1]
+n=n.transpose() #nutriente i en alimento j. Esto es una matriz donde las filas son los alimentos j y las columnas son los nutrientes i
 nm = 500
 nar= 250
 nbr = 1750
 
-# Definir valores para los parámetros 
-
-
-
 #Crear modelo vacío
 
 model=Model()
+model.setParam("TimeLimit", 60)
 
 #Crea las variables de decisión
 
 X=model.addVar(vtype=GRB.INTEGER, name="X")
 X1=model.addVars(Horarios, Dias, vtype=GRB.BINARY, name="X1_ht")
 Y=model.addVars(Horarios, Dias, vtype=GRB.INTEGER, name="Y_ht")
-ZA=model.addVars(Comidas, Horarios, Dias, vtype=GRB.INTEGER, name="ZA_hmt")
-ZB=model.addVars(Comidas, Horarios, Dias, vtype=GRB.INTEGER, name="ZB_hmt")
+ZA=model.addVars(Horarios, Comidas, Dias, vtype=GRB.INTEGER, name="ZA_hmt")
+ZB=model.addVars(Horarios, Comidas, Dias, vtype=GRB.INTEGER, name="ZB_hmt")
 Q=model.addVars(Alimentos, vtype=GRB.INTEGER, name="Q_j")
-U=model.addVars(Alimentos,Horarios, Dias, vtype=GRB.INTEGER, name="U_hjt")
+U=model.addVars(Alimentos,Comidas, Dias, vtype=GRB.INTEGER, name="U_jmt")
 E=model.addVars(Horarios, Dias, vtype=GRB.BINARY, name="E_ht")
 G=model.addVars(Alimentos, Comidas, Dias, vtype=GRB.BINARY, name="G_jmt")
 
@@ -70,17 +68,17 @@ model.update()
 model.addConstrs((quicksum(G[j,m,t]*n[i,j]for m in Comidas for j in Alimentos)>=ne[i] for i in Nutrientes for t in Dias),name="R1")
 
 #R2
-model.addConstrs((quicksum(ZA[h,1,t]+ZB[h,1,t]for h in range(1,7))>= nar+nbr for t in Dias),name="R2a")
-model.addConstrs((quicksum(ZA[h,2,t]+ZB[h,2,t]for h in range(7,12))>= nar+nbr for t in Dias),name="R2b")
-model.addConstrs((quicksum(ZA[h,3,t]+ZB[h,3,t]for h in range(12,18))>= nar+nbr for t in Dias),name="R2c")
+model.addConstrs((quicksum(ZA[h,0,t]+ZB[h,0,t]for h in range(0,6))>= nar+nbr for t in Dias),name="R2a")
+model.addConstrs((quicksum(ZA[h,1,t]+ZB[h,1,t]for h in range(6,11))>= nar+nbr for t in Dias),name="R2b")
+model.addConstrs((quicksum(ZA[h,2,t]+ZB[h,2,t]for h in range(11,17))>= nar+nbr for t in Dias),name="R2c")
 
 #R3
-model.addConstrs((quicksum(ZA[h,1,t]+ZB[h,1,t]for h in range (7,18))== 0 for t in Dias),name="R3a")
-model.addConstrs((quicksum(ZA[h,2,t]+ZB[h,2,t]for h in range (1,7)) + quicksum(ZA[h,2,t]+ZB[h,2,t]for h in range (12,18))== 0 for t in Dias),name="R3b")
-model.addConstrs((quicksum(ZA[h,3,t]+ZB[h,3,t]for h in range (1,12))== 0 for t in Dias),name="R3c")
+model.addConstrs((quicksum(ZA[h,0,t]+ZB[h,0,t]for h in range (6,17))== 0 for t in Dias),name="R3a")
+model.addConstrs((quicksum(ZA[h,1,t]+ZB[h,1,t]for h in range (0,6)) + quicksum(ZA[h,1,t]+ZB[h,1,t]for h in range (12,17))== 0 for t in Dias),name="R3b")
+model.addConstrs((quicksum(ZA[h,2,t]+ZB[h,2,t]for h in range (0,12))== 0 for t in Dias),name="R3c")
 
 #R4
-model.addConstrs((ZA[h,m,t]+ZB[h,m,t] for h in Horarios for m in Comidas for t in Dias),name="R4")
+model.addConstrs((ZA[h,m,t]+ZB[h,m,t]<=nm for h in Horarios for m in Comidas for t in Dias),name="R4")
 
 #R5
 model.addConstrs((ZA[h,m,t]<= (2 + 3*Y[h,t]) for h in Horarios for m in Comidas for t in Dias),name="R5")
@@ -96,20 +94,22 @@ model.addConstr((-1*quicksum(Q[j]*(d[j]-1)*v[j]for j in Alimentos)<= vd),name="R
 model.addConstrs((Q[j]>=quicksum(G[j,m,t]*(nar+nbr) for t in Dias for m in Comidas) for j in Alimentos),name="R8")
 
 #R9
-model.addConstrs((ZA[h,m,t]+ZB[h,m,t] <= nm*X1[h,t] for h in Horarios for m in Comidas for t in Dias),name="R9")
+model.addConstrs((ZA[h,m,t]+ZB[h,m,t] <= nm * X1[h,t] for h in Horarios for m in Comidas for t in Dias),name="R9")
 
 #R10
 model.addConstr((quicksum(X1[h,t] for h in Horarios for t in Dias)==X),name="R10")
 
-#R11 -> CORREGIR!!!
-model.addConstrs((Q[j]- G[j,m,t]*(nar+nbr) == U[h,j,t]for h in Horarios for j in Alimentos for m in Comidas for t in Dias),name="R11")
+#R11
+model.addConstrs((Q[j]- quicksum(G[j,a,b]*(nar+nbr) for a in range(m,3) for b in range(t,7))== U[j,m,t]for m in Comidas for j in Alimentos for t in Dias),name="R11")
 
 #R12
-model.addConstrs((quicksum(U[h,j,t]*d[j]*v[j] for j in Alimentos)<=vr* E[h,t] for h in Horarios for t in Dias),name="R12")
+model.addConstrs((quicksum(U[j,0,t] * d[j] * v[j] for j in Alimentos)<= vr * E[h,t] for h in range(0,6) for t in Dias),name="R12a")
+model.addConstrs((quicksum(U[j,1,t] * d[j] * v[j] for j in Alimentos)<= vr * E[h,t] for h in range(6,11) for t in Dias),name="R12b")
+model.addConstrs((quicksum(U[j,2,t] * d[j] * v[j] for j in Alimentos)<= vr * E[h,t] for h in range(11,17) for t in Dias),name="R12c")
 
 #Función objetivo
 
-objetivo = quicksum(Q[j] * c[j] for j in Alimentos) + quicksum(r * E[h,t] for h in Horarios for t in Dias) + quicksum(cg * Y[h,t] for h in Horarios for t in Dias) + 7 * L * X
+objetivo = quicksum(Q[j] * c[j] for j in Alimentos) + quicksum(r * E[h,t] for h in Horarios for t in Dias) + quicksum(cg * Y[h,t] for h in Horarios for t in Dias) + 7 * l * X
 model.setObjective(objetivo,GRB.MINIMIZE)
 
 #Optimizar el problema
@@ -121,14 +121,16 @@ model.optimize()
 print("\n"+"-"*10+" Manejo Soluciones "+"-"*10)
 print(f"El valor objetivo es de: {model.ObjVal}")
 
-#for sitio in Sitios: -> Esto lo tengo aquí para guiarme nomás
- #   if x[sitio].x != 0:
-  #      print(f"Se construye un campamento en el sitio {sitio}")
-   # if s[sitio].x != 0:
-    #    print(f"Se asignan {s[sitio].x} personas para vacunarse en el campamento construido en el sitio {sitio}")
+#for comi
+
+#for sitio in Sitios: 
+    #if x[sitio].x != 0:
+        #print(f"Se construye un campamento en el sitio {sitio}")
+    #if s[sitio].x != 0:
+        #print(f"Se asignan {s[sitio].x} personas para vacunarse en el campamento construido en el sitio {sitio}")
     #for localidad in Localidades:
-     #   if y[localidad, sitio].x != 0:
-      #      print(f"Se asocia la localidad {localidad} con el campamento ubicado en el sitio {sitio}")
+        #if y[localidad, sitio].x != 0:
+            #print(f"Se asocia la localidad {localidad} con el campamento ubicado en el sitio {sitio}")
 
 # ¿Cuál de las restricciones son activas?
 print("\n"+"-"*9+" Restricciones Activas "+"-"*9)
