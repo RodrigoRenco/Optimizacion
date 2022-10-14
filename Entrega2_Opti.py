@@ -3,17 +3,13 @@ import numpy as np
 import openpyxl
 import pandas as pd
 
-# Definicion de data/parámetros: Definir Localidades y Sitios
-#Ruta excel!!
-
 ruta=r'/Users/diegomorales/Desktop/Universidad/Directorio VSCode/Excel datos E2 proyecto.xlsx'
+#Esta ruta corresponde al documento de Excel donde se registran los datos alimenticios
 MenuCom = pd.read_excel(io=ruta, sheet_name='Hoja1',header=0,names=None,index_col=None,usecols='A:K',engine='openpyxl')
 MenuCom = MenuCom.to_numpy()
 Requisitos = pd.read_excel(io=ruta, sheet_name='Hoja2',header=0,names=None,index_col=None,usecols='A:B',engine='openpyxl')
 Requisitos = Requisitos.to_numpy()
 
-
-###Falta separar en conjuntos de Alimentos, nutrientes por comida,etc.
 
 #Conjuntos
 Comidas=np.array([0,1,2])
@@ -42,7 +38,7 @@ nbr = 1750
 #Crear modelo vacío
 
 model=Model()
-model.setParam("TimeLimit", 10)
+#model.setParam("TimeLimit", 10)
 
 #Crea las variables de decisión
 
@@ -99,8 +95,13 @@ model.addConstrs((ZA[h,m,t]+ZB[h,m,t] <= nm * X1[h,t] for h in Horarios for m in
 #R10
 model.addConstr((quicksum(X1[h,t] for h in Horarios for t in Dias)==X),name="R10")
 
-#R11
-model.addConstrs((Q[j]- quicksum(G[j,a,b]*(nar+nbr) for a in range(m,3) for b in range(t,7))== U[j,m,t]for m in Comidas for j in Alimentos for t in Dias),name="R11")
+#R11 ARREGLAR!!!
+#model.addConstrs((Q[j]- quicksum(G[j,a,b]*(nar+nbr) for a in range(m,3) for b in range(t,7))== U[j,m,t]for m in Comidas for j in Alimentos for t in Dias),name="R11")
+model.addConstrs((Q[j]- G[j,0,0]*(nar+nbr) == U[j,0,0] for j in Alimentos),name="R11a")
+model.addConstrs((U[j,0,0]- G[j,1,1]*(nar+nbr) == U[j,1,0] for j in Alimentos),name="R11b")
+model.addConstrs((U[j,1,0]- G[j,2,1]*(nar+nbr) == U[j,2,0] for j in Alimentos),name="R11c")
+model.addConstrs((U[j,2,t-1]- G[j,0,t]*(nar+nbr) == U[j,0,t] for j in Alimentos for t in range(1,6)),name="R11d")
+model.addConstrs((U[j,m-1,t]- G[j,m,t]*(nar+nbr) == U[j,m,t]for m in range(1,3) for j in Alimentos for t in range(1,7)),name="R11e")
 
 #R12
 model.addConstrs((quicksum(U[j,0,t] * d[j] * v[j] for j in Alimentos)<= vr * E[h,t] for h in range(0,6) for t in Dias),name="R12a")
