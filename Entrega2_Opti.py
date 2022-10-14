@@ -1,7 +1,9 @@
+from distutils.command.clean import clean
 from gurobipy import GRB, Model, quicksum
 import numpy as np
 import openpyxl
 import pandas as pd
+import math
 
 ruta=r'/Users/diegomorales/Desktop/Universidad/Directorio VSCode/Excel datos E2 proyecto.xlsx'
 #Esta ruta corresponde al documento de Excel donde se registran los datos alimenticios
@@ -12,11 +14,13 @@ Requisitos = Requisitos.to_numpy()
 
 
 #Conjuntos
+
 Comidas=np.array([0,1,2])
 Dias=np.array([0,1,2,3,4,5,6])
 Horarios=np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16])
 Alimentos= np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]) #MenuCom[:,0]
 Nutrientes= np.array([0,1,2,3]) #np.array[kcal,grasas,carbohidratos,proteínas] kcal=1,grasas=2,carbohidratos=3,proteínas=4
+
 
 # Definir valores para los parámetros 
 
@@ -38,7 +42,7 @@ nbr = 1750
 #Crear modelo vacío
 
 model=Model()
-#model.setParam("TimeLimit", 10)
+model.setParam("TimeLimit", 5)
 
 #Crea las variables de decisión
 
@@ -65,8 +69,11 @@ model.addConstrs((quicksum(G[j,m,t]*n[i,j]for m in Comidas for j in Alimentos)>=
 
 #R2
 model.addConstrs((quicksum(ZA[h,0,t]+ZB[h,0,t]for h in range(0,6))>= nar+nbr for t in Dias),name="R2a")
+model.addConstrs((quicksum(ZA[h,0,t] for h in range(0,6))>= nar for t in Dias),name="R2ap")
 model.addConstrs((quicksum(ZA[h,1,t]+ZB[h,1,t]for h in range(6,11))>= nar+nbr for t in Dias),name="R2b")
+model.addConstrs((quicksum(ZA[h,1,t] for h in range(6,11))>= nar for t in Dias),name="R2bp")
 model.addConstrs((quicksum(ZA[h,2,t]+ZB[h,2,t]for h in range(11,17))>= nar+nbr for t in Dias),name="R2c")
+model.addConstrs((quicksum(ZA[h,2,t] for h in range(11,17))>= nar for t in Dias),name="R2cp")
 
 #R3
 model.addConstrs((quicksum(ZA[h,0,t]+ZB[h,0,t]for h in range (6,17))== 0 for t in Dias),name="R3a")
@@ -95,8 +102,8 @@ model.addConstrs((ZA[h,m,t]+ZB[h,m,t] <= nm * X1[h,t] for h in Horarios for m in
 #R10
 model.addConstr((quicksum(X1[h,t] for h in Horarios for t in Dias)==X),name="R10")
 
-#R11 ARREGLAR!!!
-#model.addConstrs((Q[j]- quicksum(G[j,a,b]*(nar+nbr) for a in range(m,3) for b in range(t,7))== U[j,m,t]for m in Comidas for j in Alimentos for t in Dias),name="R11")
+#R11 Con esta restricción el modelo es muy recursivo y no se obtiene un valor dentro de los 30 minutos.
+
 model.addConstrs((Q[j]- G[j,0,0]*(nar+nbr) == U[j,0,0] for j in Alimentos),name="R11a")
 model.addConstrs((U[j,0,0]- G[j,1,1]*(nar+nbr) == U[j,1,0] for j in Alimentos),name="R11b")
 model.addConstrs((U[j,1,0]- G[j,2,1]*(nar+nbr) == U[j,2,0] for j in Alimentos),name="R11c")
@@ -123,56 +130,150 @@ print("\n"+"-"*10+" Manejo Soluciones "+"-"*10)
 print(f"El valor objetivo es de: {model.ObjVal}")
 
 
-print(f'El casino fue usado {(X.x)/7} veces durante la semana')
+print(f'El casino fue usado {(X.x)/7} turnos durante cada día')
+
+
+### En esta sección se genera el documento de Excel donde se presentan los resultados del modelo ###
+
+##Cada variable de decisión será presentada en una hoja del documento
+
+#Compra de alimentos (Qj)
+MQ=np.array([])
+a= np.array(['Papas fritas','Arroz blanco','Papa cocida','Pollo','Carne','Huevo','Lentejas','Marraqueta','Lechuga','Atún en agua','Tomate','Aceite','Leche entera','Plátano','Salchicha','Manzana'])
 
 for alimento in Alimentos:
-    if Q[alimento].x != 0:
-        print(f'Se compra {Q[alimento].x} unidades del alimento {alimento+1}')
+    b=np.array([a[alimento],Q[alimento].x])
+    MQ=np.append(MQ,b)
+    #if Q[alimento].x != 0:
+        #print(f'Se compra {Q[alimento].x} unidades del alimento {alimento+1}')
+
+MQ=MQ.reshape(16,2)
+DF1=pd.DataFrame(MQ)
+
+#Horario casino (X1ht)
+MX1=np.array([])
+a=np.array(['D1','D2','D3','D4','D5','D6','D7'])
 
 for dia in Dias:
+
+    d=np.array([])
+    d=np.append(d,a[dia])
+
     for horario in Horarios:
-        if X1[horario,dia].x != 0:
-            print(f'Se ocupa el casino en el horario {horario+1} del día {dia+1}')
+        b=np.array([X1[horario,dia].x])
+        d=np.append(d,b)
+        #if X1[horario,dia].x != 0:
+            #print(f'Se ocupa el casino en el horario {horario+1} del día {dia+1}')
+
+    MX1=np.append(MX1,d)
+
+MX1=MX1.reshape(7,18)
+DF2=pd.DataFrame(MX1)
+
+#Asignación de guardias (Yht)
+MY=np.array([])
+a=np.array(['D1','D2','D3','D4','D5','D6','D7'])
 
 for dia in Dias:
+
+    d=np.array([])
+    d=np.append(d,a[dia])
+
     for horario in Horarios:
-        if Y[horario,dia].x != 0:
-            print(f'Se asignó {Y[horario,dia].x} gendarmes adicionales al casino en el horario {horario+1} del día {dia+1}')
+        b=np.array([Y[horario,dia].x])
+        d=np.append(d,b)
+        #if Y[horario,dia].x != 0:
+            #print(f'Se asignó {Y[horario,dia].x} gendarmes adicionales al casino en el horario {horario+1} del día {dia+1}')
+        
+    MY=np.append(MY,d)
+
+MY=MY.reshape(7,18)
+DF3=pd.DataFrame(MY)
+
+#Encendido de refrigeradores (Eht)
+ME=np.array([])
+a=np.array(['D1','D2','D3','D4','D5','D6','D7'])
 
 for dia in Dias:
-    for horario in Horarios:
-        if E[horario,dia].x != 0:
-            print(f'Los refrigeradores se encuentran encendidos en el horario {horario+1} del día {dia+1}')
 
-for comida in Comidas:
-    for dia in Dias:
+    d=np.array([])
+    d=np.append(d,a[dia])
+
+    for horario in Horarios:
+
+        b=np.array([E[horario,dia].x])
+        d=np.append(d,b)
+        #if E[horario,dia].x != 0:
+            #print(f'Los refrigeradores se encuentran encendidos en el horario {horario+1} del día {dia+1}')
+
+    ME=np.append(ME,d)
+
+ME=ME.reshape(7,18)
+DF4=pd.DataFrame(ME)
+
+#Datos de comida (Ujmt y Gjmt)
+
+MU=np.array([])
+MG=np.array([])
+a= np.array(['Desayuno','Almuerzo','Comida'])
+c=np.array(['Papas fritas','Arroz blanco','Papa cocida','Pollo','Carne','Huevo','Lentejas','Marraqueta','Lechuga','Atún en agua','Tomate','Aceite','Leche entera','Plátano','Salchicha','Manzana'])
+
+for dia in Dias:
+    for comida in Comidas:
         for alimento in Alimentos:
+
             if U[alimento,comida,dia].x != 0:
-                print(f'Hay {U[alimento,comida,dia].x} cc del alimento {alimento+1} en la comida {comida+1} del día {dia+1}')
+                espacio=np.array([f'Hay {U[alimento,comida,dia].x} cc del alimento {c[alimento]} en la comida "{a[comida]}" del día {dia+1}'])
+                MU=np.append(MU,espacio)
+                #print(f'Hay {U[alimento,comida,dia].x} cc del alimento {alimento+1} en la comida {comida+1} del día {dia+1}')
+
             if G[alimento,comida,dia].x != 0:
-                print(f'Se sirve el alimento {alimento+1} en la comida {comida+1} del día {dia+1}')
+                resp=np.array([f'En la comida "{a[comida]}" del día {dia+1} se sirve el alimento {c[alimento]}'])
+                MG=np.append(MG,resp)
+                #print(f'En la comida {comida+1} del día {dia+1} se sirve el alimento {alimento+1}')
+
+DF5=pd.DataFrame(MG)
+DF6=pd.DataFrame(MU)
+
+MZA=np.array([])
+MZB=np.array([])
+a= np.array(['Desayuno','Almuerzo','Comida'])
+
+#Datos de Reos (ZAhmt y ZBhmt)
 
 for comida in Comidas:
     for dia in Dias:
         for horario in Horarios:
             if ZA[horario,comida,dia].x != 0:
-                print(f'Hay {ZA[horario,comida,dia].x} reos de alto riesgo en la comida {comida+1} en el horario {horario+1} del día {dia+1}')
+                ra=np.array([f'Hay {ZA[horario,comida,dia].x} reos de alto riesgo en la comida "{a[comida]}" en el horario {horario+1} del día {dia+1}'])
+                MZA=np.append(MZA,ra)
+                #print(f'Hay {ZA[horario,comida,dia].x} reos de alto riesgo en la comida {comida+1} en el horario {horario+1} del día {dia+1}')
             if ZB[horario,comida,dia].x != 0:
-                print(f'Hay {ZB[horario,comida,dia].x} reos de bajo riesgo en la comida {comida+1} en el horario {horario+1} del día {dia+1}')
+                rb=np.array([f'Hay {ZB[horario,comida,dia].x} reos de bajo riesgo en la comida "{a[comida]}" en el horario {horario+1} del día {dia+1}'])
+                MZB=np.append(MZB,rb)
+                #print(f'Hay {ZB[horario,comida,dia].x} reos de bajo riesgo en la comida {comida+1} en el horario {horario+1} del día {dia+1}')
 
+DF7=pd.DataFrame(MZA)
+DF8=pd.DataFrame(MZB)
 
-#for sitio in Sitios: 
-    #if x[sitio].x != 0:
-        #print(f"Se construye un campamento en el sitio {sitio}")
-    #if s[sitio].x != 0:
-        #print(f"Se asignan {s[sitio].x} personas para vacunarse en el campamento construido en el sitio {sitio}")
-    #for localidad in Localidades:
-        #if y[localidad, sitio].x != 0:
-            #print(f"Se asocia la localidad {localidad} con el campamento ubicado en el sitio {sitio}")
+#Generamos el docuemento Excel
+with pd.ExcelWriter('Variables_de_decisión.xlsx') as writer:
+    DF1.to_excel(writer, sheet_name='Compra de alimentos')
+    DF2.to_excel(writer, sheet_name='Uso del casino en cada horario horario')
+    DF3.to_excel(writer, sheet_name='Asignación de guardias en cada horario')
+    DF4.to_excel(writer, sheet_name='Estado de los refrigeradores')
+    DF5.to_excel(writer, sheet_name='Uso de alimentos en cada configuración de comida')
+    DF6.to_excel(writer, sheet_name='Espacio ocupado en el refrigerador')
+    DF7.to_excel(writer, sheet_name='Número de reos de alto riesgo en cada horario')
+    DF8.to_excel(writer, sheet_name='Número de reos de bajo riesgo en cada horario')
+
 
 # ¿Cuál de las restricciones son activas?
 print("\n"+"-"*9+" Restricciones Activas "+"-"*9)
+
+
 #for constr in model.getConstrs():
- #   if constr.getAttr("slack") == 0:
-  #      print(f"La restriccion {constr} está activa")
+    #if constr.getAttr("slack") == 0:
+        #print(f"La restriccion {constr} está activa")
+
 #model.printAttr("X")
